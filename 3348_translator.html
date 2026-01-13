@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Foundation Terminal // SCP-3348</title>
+    <style>
+        body { background-color: #050505; color: #33ff33; font-family: 'Consolas', monospace; padding: 20px; overflow-x: hidden; }
+        .terminal { max-width: 950px; margin: 0 auto; border: 1px solid #333; background: #000; padding: 20px; position: relative; }
+        
+        #bootScreen { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#0f0; }
+        
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); text-shadow: 2px 0 red; }
+            60% { transform: translate(2px, 2px); text-shadow: -2px 0 blue; }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+        .glitch-active { animation: glitch 0.2s infinite; }
+
+        .header { border-bottom: 2px solid #a00; color: #f00; text-align: center; padding-bottom: 10px; margin-bottom: 20px; font-weight: bold; }
+        .hume-box { position: absolute; top: 10px; right: 20px; text-align: right; color: #444; font-size: 0.7rem; border-left: 1px solid #222; padding-left: 10px; }
+        #humeVal { color: #f00; font-weight: bold; font-size: 1.1rem; }
+        
+        .module { background: #111; border: 1px solid #222; padding: 15px; margin-bottom: 20px; }
+        .label { color: #a00; font-weight: bold; font-size: 0.8rem; text-transform: uppercase; display: block; margin-bottom: 5px; }
+        input, textarea, select { width: 100%; background: #000; border: 1px solid #444; color: #0f0; padding: 8px; margin-bottom: 10px; font-family: inherit; box-sizing: border-box; }
+        
+        .btn-red { background: #a00; color: white; border: none; padding: 10px; cursor: pointer; font-weight: bold; width: 100%; }
+        .btn-grey { background: #333; color: white; border: none; padding: 10px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px;}
+        
+        .dossier { display: none; background: #c0c0c0; color: #000; padding: 25px; border: 1px solid #777; font-family: 'Times New Roman', serif; position: relative; margin-top: 20px; box-shadow: 5px 5px 15px black; }
+        .stamp { position: absolute; top: 10px; right: 10px; border: 3px solid #a00; color: #a00; padding: 5px; font-weight: bold; transform: rotate(15deg); text-transform: uppercase; }
+        .redacted { background: black; color: black; cursor: pointer; }
+
+        #adminPanel { display: none; margin-top: 20px; border: 1px solid #400; background: #0a0000; padding: 15px; }
+        .audit-log { height: 100px; overflow-y: auto; background: #000; border: 1px solid #333; padding: 5px; font-size: 0.7rem; color: #888; margin-bottom: 10px; }
+        .panic-btn { background: #f00; color: #fff; border: 4px outset #a00; padding: 15px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 20px; }
+    </style>
+</head>
+<body onload="runBoot()">
+
+<div id="bootScreen"><div id="bootText"></div></div>
+
+<div class="terminal" id="mainTerminal">
+    <div class="hume-box">KANT COUNTER<br>Hm: <span id="humeVal">1.00</span></div>
+    <div class="header">SITE-██ INTERNAL TERMINAL // LINGUISTIC ANALYSIS</div>
+
+    <div class="module">
+        <span class="label">Research Archive Retrieval</span>
+        <input type="text" id="searchBox" placeholder="Input concept..." onkeypress="if(event.key==='Enter') retrieveEntry()">
+        <button class="btn-red" onclick="retrieveEntry()">RETRIEVE LOGS</button>
+    </div>
+
+    <div id="dossier" class="dossier">
+        <div id="outClearance" class="stamp">LEVEL 3 RESTRICTED</div>
+        <div id="contentArea">
+            <div><span style="font-weight:bold; text-decoration:underline;">Entry Tested:</span> <span id="outKaej" style="font-family: monospace;"></span></div>
+            <div><span style="font-weight:bold; text-decoration:underline;">Translation:</span> "<span id="outTrans"></span>"</div>
+            <hr style="border-top:1px solid #777">
+            <div><span style="font-weight:bold; text-decoration:underline;">Procedure:</span> <br><span id="outProc"></span></div>
+            <div style="margin-top:10px;"><span style="font-weight:bold; text-decoration:underline;">Results:</span> <br><span id="outRes"></span></div>
+        </div>
+        <button class="btn-grey" onclick="closeDossier()">[ CLOSE FILE ]</button>
+    </div>
+
+    <div class="password-lock" id="lockScreen" style="text-align:center; padding:10px;">
+        <span class="label" style="color:#444">ADMIN OVERRIDE REQUIRED</span>
+        <input type="password" id="adminPass" placeholder="Access Code..." style="width:200px;">
+        <button class="btn-grey" onclick="checkPassword()" style="width:100px;">LOGIN</button>
+    </div>
+
+    <div id="adminPanel">
+        <button class="panic-btn" onclick="activateSRA()">ACTIVATE SCRANTON REALITY ANCHOR (SRA)</button>
+        <div class="admin-header" style="color:red; font-weight:bold; margin-bottom:10px; border-bottom: 1px solid #400; padding-bottom: 5px;">
+            O5 COMMAND INTERFACE <button onclick="logout()" style="float:right; background:transparent; border:1px solid red; color:red; cursor:pointer;">LOGOUT</button>
+        </div>
+        
+        <span class="label">Search Audit Trail</span>
+        <div id="auditLog" class="audit-log"></div>
+
+        <div class="module" style="background:transparent; border:none; padding:0;">
+            <span class="label">Create Discovery Log</span>
+            <div style="display:grid; grid-template-columns: 2fr 1fr; gap:10px;">
+                <input type="text" id="customWord" placeholder="English Word">
+                <input type="number" id="customHume" placeholder="Hm (0-100)" step="0.1" value="1.0">
+            </div>
+            <span class="label" style="font-size:0.6rem;">Kaej String (Use * to redact)</span>
+            <input type="text" id="customKaej" placeholder="Kaejnithionian String...">
+            <textarea id="customProc" placeholder="Procedure..."></textarea>
+            <textarea id="customRes" placeholder="Results..."></textarea>
+            <textarea id="customRp" placeholder="Admin Instructions..."></textarea>
+            <button class="btn-red" onclick="addCustomEntry()">SAVE TO SECURE ARCHIVE</button>
+        </div>
+
+        <div class="module" style="background:#050000; border-color:#500;">
+            <span class="label" style="color:#f00;">System Config</span>
+            <input type="text" id="clearanceInput" placeholder="New Clearance Label (e.g. LEVEL 5)...">
+            <button class="btn-grey" onclick="updateClearanceLabel()">UPDATE CLEARANCE STAMP</button>
+            <button class="btn-grey" onclick="exportDB()">EXPORT DATA</button>
+            <button class="btn-grey" onclick="importDB()">IMPORT DATA</button>
+            <button class="btn-grey" onclick="secureWipe()" style="color:red; margin-top:15px;">PURGE ALL DATA</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let database = {};
+    let currentAdminPass = "O5-1";
+    let activeHume = 1.00;
+    let currentClearance = "LEVEL 3 RESTRICTED";
+
+    function runBoot() {
+        const lines = ["> INITIALIZING...", "> CHECKING ENCRYPTION...", "> SITE-██ LINK ACTIVE.", "> ACCESS GRANTED."];
+        let i = 0;
+        const interval = setInterval(() => {
+            document.getElementById('bootText').innerText += lines[i] + "\n";
+            i++;
+            if(i >= lines.length) { clearInterval(interval); setTimeout(() => { document.getElementById('bootScreen').style.display = 'none'; init(); }, 1000); }
+        }, 500);
+    }
+
+    function init() {
+        const savedDB = localStorage.getItem('scp3348_db');
+        const savedPass = localStorage.getItem('scp3348_pass');
+        const savedClearance = localStorage.getItem('scp3348_clearance');
+        
+        if (savedDB) database = JSON.parse(savedDB);
+        if (savedPass) currentAdminPass = savedPass;
+        if (savedClearance) {
+            currentClearance = savedClearance;
+            document.getElementById('clearanceInput').value = savedClearance;
+        }
+        
+        setInterval(() => {
+            const h = (parseFloat(activeHume) + (Math.random() * 0.02 - 0.01)).toFixed(2);
+            document.getElementById('humeVal').innerText = h;
+            if (h < 0.40) document.getElementById('mainTerminal').classList.add('glitch-active');
+            else document.getElementById('mainTerminal').classList.remove('glitch-active');
+        }, 2000);
+    }
+
+    function updateClearanceLabel() {
+        const val = document.getElementById('clearanceInput').value.trim();
+        if (val) {
+            currentClearance = val;
+            localStorage.setItem('scp3348_clearance', val);
+            alert("STAMP UPDATED TO: " + val);
+        }
+    }
+
+    function activateSRA() {
+        alert("SRA ENGAGED: REALITY ANCHORED AT 1.00 HM");
+        activeHume = 1.00;
+        closeDossier();
+    }
+
+    function retrieveEntry() {
+        let key = document.getElementById('searchBox').value.toLowerCase().trim();
+        let entry = database[key];
+        const log = document.getElementById('auditLog');
+        log.innerHTML = `[${new Date().toLocaleTimeString()}] SEARCH: ${key}<br>` + log.innerHTML;
+
+        if (entry) {
+            document.getElementById('outClearance').innerText = currentClearance;
+            document.getElementById('outKaej').innerHTML = entry.kaej.replace(/\*/g, '<span class="redacted">███</span>');
+            document.getElementById('outTrans').innerText = key;
+            document.getElementById('outProc').innerText = entry.proc;
+            document.getElementById('outRes').innerText = entry.res;
+            document.getElementById('dossier').style.display = 'block';
+            activeHume = entry.hume || 1.00;
+        } else { alert("LOG NOT FOUND."); }
+    }
+
+    function addCustomEntry() {
+        let word = document.getElementById('customWord').value.toLowerCase().trim();
+        if (!word) return;
+        database[word] = {
+            kaej: document.getElementById('customKaej').value,
+            hume: document.getElementById('customHume').value,
+            proc: document.getElementById('customProc').value,
+            res: document.getElementById('customRes').value,
+            rp: document.getElementById('customRp').value
+        };
+        localStorage.setItem('scp3348_db', JSON.stringify(database));
+        alert("LOG COMMITTED.");
+    }
+
+    function checkPassword() {
+        if (document.getElementById('adminPass').value === currentAdminPass) {
+            document.getElementById('adminPanel').style.display = 'block';
+            document.getElementById('lockScreen').style.display = 'none';
+        } else { alert("DENIED."); }
+    }
+
+    function logout() { location.reload(); }
+    function closeDossier() { document.getElementById('dossier').style.display = 'none'; activeHume = 1.00; }
+    function exportDB() { 
+        const blob = new Blob([JSON.stringify(database)], {type: 'text/plain'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = 'SCP3348_Archive.txt'; a.click();
+    }
+    function importDB() {
+        const input = document.createElement('input'); input.type = 'file';
+        input.onchange = e => {
+            const reader = new FileReader(); reader.readAsText(e.target.files[0]);
+            reader.onload = ev => { database = JSON.parse(ev.target.result); localStorage.setItem('scp3348_db', JSON.stringify(database)); alert("IMPORTED."); }
+        }; input.click();
+    }
+    function secureWipe() { if(confirm("PERMANENTLY PURGE ALL LOGS?")) { localStorage.removeItem('scp3348_db'); location.reload(); } }
+</script>
+</body>
+</html>
