@@ -42,3 +42,4 @@ The Panic Button: Use the SRA Activation button during events when a player "ove
 The Audit Log: Check the search history to see if researchers are attempting to find "Forbidden Concepts" (e.g., Death, God, Termination).
 
 Variable Clearances: Change the Clearance Stamp to "SITE DIRECTOR EYES ONLY" during high-stakes breaches.
+ 
