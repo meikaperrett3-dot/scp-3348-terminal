@@ -67,8 +67,9 @@
 
     <div class="password-lock" id="lockScreen" style="text-align:center; padding:10px;">
         <span class="label" style="color:#444">ADMIN OVERRIDE REQUIRED</span>
-        <input type="password" id="adminPass" placeholder="Access Code..." style="width:200px;">
-        <button class="btn-grey" onclick="checkPassword()" style="width:100px;">LOGIN</button>
+        <input type="text" id="adminUser" placeholder="Username..." style="width:200px; display:block; margin: 10px auto;">
+        <input type="password" id="adminPass" placeholder="Access Code..." style="width:200px; display:block; margin: 10px auto;">
+        <button class="btn-grey" onclick="checkLogin()" style="width:100px;">LOGIN</button>
     </div>
 
     <div id="adminPanel">
@@ -90,15 +91,17 @@
             <input type="text" id="customKaej" placeholder="Kaejnithionian String...">
             <textarea id="customProc" placeholder="Procedure..."></textarea>
             <textarea id="customRes" placeholder="Results..."></textarea>
-            <textarea id="customRp" placeholder="Admin Instructions..."></textarea>
             <button class="btn-red" onclick="addCustomEntry()">SAVE TO SECURE ARCHIVE</button>
         </div>
 
         <div class="module" style="background:#050000; border-color:#500;">
             <span class="label" style="color:#f00;">System Config</span>
+            <input type="password" id="newPassInput" placeholder="New Admin Access Code...">
+            <button class="btn-grey" onclick="updateAdminPassword()">UPDATE ACCESS CODE</button>
+            <hr style="border-color:#300; margin:15px 0;">
             <input type="text" id="clearanceInput" placeholder="New Clearance Label (e.g. LEVEL 5)...">
             <button class="btn-grey" onclick="updateClearanceLabel()">UPDATE CLEARANCE STAMP</button>
-            <button class="btn-grey" onclick="exportDB()">EXPORT DATA</button>
+            <button class="btn-grey" onclick="exportDB()" style="margin-top:10px;">EXPORT DATA</button>
             <button class="btn-grey" onclick="importDB()">IMPORT DATA</button>
             <button class="btn-grey" onclick="secureWipe()" style="color:red; margin-top:15px;">PURGE ALL DATA</button>
         </div>
@@ -107,6 +110,7 @@
 
 <script>
     let database = {};
+    let currentAdminUser = "O5-8: \"The Imperative\"";
     let currentAdminPass = "O5-1";
     let activeHume = 1.00;
     let currentClearance = "LEVEL 3 RESTRICTED";
@@ -128,10 +132,7 @@
         
         if (savedDB) database = JSON.parse(savedDB);
         if (savedPass) currentAdminPass = savedPass;
-        if (savedClearance) {
-            currentClearance = savedClearance;
-            document.getElementById('clearanceInput').value = savedClearance;
-        }
+        if (savedClearance) currentClearance = savedClearance;
         
         setInterval(() => {
             const h = (parseFloat(activeHume) + (Math.random() * 0.02 - 0.01)).toFixed(2);
@@ -141,12 +142,31 @@
         }, 2000);
     }
 
+    function checkLogin() {
+        const user = document.getElementById('adminUser').value;
+        const pass = document.getElementById('adminPass').value;
+        if (user === currentAdminUser && pass === currentAdminPass) {
+            document.getElementById('adminPanel').style.display = 'block';
+            document.getElementById('lockScreen').style.display = 'none';
+        } else { alert("ACCESS DENIED: CREDENTIALS NOT FOUND."); }
+    }
+
+    function updateAdminPassword() {
+        const newPass = document.getElementById('newPassInput').value.trim();
+        if (newPass) {
+            currentAdminPass = newPass;
+            localStorage.setItem('scp3348_pass', newPass);
+            alert("ACCESS CODE UPDATED.");
+            document.getElementById('newPassInput').value = "";
+        }
+    }
+
     function updateClearanceLabel() {
         const val = document.getElementById('clearanceInput').value.trim();
         if (val) {
             currentClearance = val;
             localStorage.setItem('scp3348_clearance', val);
-            alert("STAMP UPDATED TO: " + val);
+            alert("STAMP UPDATED.");
         }
     }
 
@@ -161,7 +181,6 @@
         let entry = database[key];
         const log = document.getElementById('auditLog');
         log.innerHTML = `[${new Date().toLocaleTimeString()}] SEARCH: ${key}<br>` + log.innerHTML;
-
         if (entry) {
             document.getElementById('outClearance').innerText = currentClearance;
             document.getElementById('outKaej').innerHTML = entry.kaej.replace(/\*/g, '<span class="redacted">███</span>');
@@ -180,18 +199,10 @@
             kaej: document.getElementById('customKaej').value,
             hume: document.getElementById('customHume').value,
             proc: document.getElementById('customProc').value,
-            res: document.getElementById('customRes').value,
-            rp: document.getElementById('customRp').value
+            res: document.getElementById('customRes').value
         };
         localStorage.setItem('scp3348_db', JSON.stringify(database));
         alert("LOG COMMITTED.");
-    }
-
-    function checkPassword() {
-        if (document.getElementById('adminPass').value === currentAdminPass) {
-            document.getElementById('adminPanel').style.display = 'block';
-            document.getElementById('lockScreen').style.display = 'none';
-        } else { alert("DENIED."); }
     }
 
     function logout() { location.reload(); }
@@ -199,7 +210,7 @@
     function exportDB() { 
         const blob = new Blob([JSON.stringify(database)], {type: 'text/plain'});
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-        a.download = 'SCP3348_Archive.txt'; a.click();
+        a.download = 'Archive.txt'; a.click();
     }
     function importDB() {
         const input = document.createElement('input'); input.type = 'file';
@@ -208,7 +219,7 @@
             reader.onload = ev => { database = JSON.parse(ev.target.result); localStorage.setItem('scp3348_db', JSON.stringify(database)); alert("IMPORTED."); }
         }; input.click();
     }
-    function secureWipe() { if(confirm("PERMANENTLY PURGE ALL LOGS?")) { localStorage.removeItem('scp3348_db'); location.reload(); } }
+    function secureWipe() { if(confirm("PURGE ALL?")) { localStorage.removeItem('scp3348_db'); location.reload(); } }
 </script>
 </body>
 </html>
