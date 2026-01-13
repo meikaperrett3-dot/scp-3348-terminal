@@ -37,6 +37,9 @@
         #adminPanel { display: none; margin-top: 20px; border: 1px solid #400; background: #0a0000; padding: 15px; }
         .audit-log { height: 100px; overflow-y: auto; background: #000; border: 1px solid #333; padding: 5px; font-size: 0.7rem; color: #888; margin-bottom: 10px; }
         .panic-btn { background: #f00; color: #fff; border: 4px outset #a00; padding: 15px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 20px; }
+        
+        .hint-text { color: #444; font-size: 0.7rem; text-decoration: underline; cursor: pointer; display: block; margin-top: 5px; }
+        .hint-text:hover { color: #666; }
     </style>
 </head>
 <body onload="runBoot()">
@@ -67,9 +70,10 @@
 
     <div class="password-lock" id="lockScreen" style="text-align:center; padding:10px;">
         <span class="label" style="color:#444">ADMIN OVERRIDE REQUIRED</span>
-        <input type="text" id="adminUser" placeholder="Username..." style="width:200px; display:block; margin: 10px auto;">
-        <input type="password" id="adminPass" placeholder="Access Code..." style="width:200px; display:block; margin: 10px auto;">
-        <button class="btn-grey" onclick="checkLogin()" style="width:100px;">LOGIN</button>
+        <input type="text" id="adminUser" placeholder="Username...">
+        <span class="hint-text" onclick="alert('HINT: It is a single word starting with \'i\'... the quality of being essential or urgent.')">Forgot Username?</span>
+        <input type="password" id="adminPass" placeholder="Access Code...">
+        <button class="btn-grey" onclick="checkLogin()" style="width:100px; margin-top: 10px;">LOGIN</button>
     </div>
 
     <div id="adminPanel">
@@ -113,7 +117,7 @@
 <script>
     let database = {};
     let currentAdminUser = "imperative";
-    let currentAdminPass = "O5-1";
+    let currentAdminPass = "Toxic the fixy foxy";
     let activeHume = 1.00;
     let currentClearance = "LEVEL 3 RESTRICTED";
 
@@ -147,6 +151,15 @@
     function checkLogin() {
         const user = document.getElementById('adminUser').value;
         const pass = document.getElementById('adminPass').value;
+
+        // EMERGENCY RECOVERY PROTOCOL
+        if (user === "RECOVERY-3348") {
+            currentAdminPass = "O5-1";
+            localStorage.setItem('scp3348_pass', "O5-1");
+            alert("EMERGENCY RECOVERY: Password has been reset to O5-1. Log in with 'imperative' and 'O5-1'.");
+            return;
+        }
+
         if (user === currentAdminUser && pass === currentAdminPass) {
             document.getElementById('adminPanel').style.display = 'block';
             document.getElementById('lockScreen').style.display = 'none';
