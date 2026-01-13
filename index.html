@@ -101,8 +101,10 @@
             <hr style="border-color:#300; margin:15px 0;">
             <input type="text" id="clearanceInput" placeholder="New Clearance Label (e.g. LEVEL 5)...">
             <button class="btn-grey" onclick="updateClearanceLabel()">UPDATE CLEARANCE STAMP</button>
-            <button class="btn-grey" onclick="exportDB()" style="margin-top:10px;">EXPORT DATA</button>
-            <button class="btn-grey" onclick="importDB()">IMPORT DATA</button>
+            <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                <button class="btn-grey" onclick="exportDB()">EXPORT DATA</button>
+                <button class="btn-grey" onclick="importDB()">IMPORT DATA</button>
+            </div>
             <button class="btn-grey" onclick="secureWipe()" style="color:red; margin-top:15px;">PURGE ALL DATA</button>
         </div>
     </div>
@@ -110,7 +112,7 @@
 
 <script>
     let database = {};
-    let currentAdminUser = "O5-8: \"The Imperative\"";
+    let currentAdminUser = "imperative";
     let currentAdminPass = "O5-1";
     let activeHume = 1.00;
     let currentClearance = "LEVEL 3 RESTRICTED";
@@ -148,7 +150,7 @@
         if (user === currentAdminUser && pass === currentAdminPass) {
             document.getElementById('adminPanel').style.display = 'block';
             document.getElementById('lockScreen').style.display = 'none';
-        } else { alert("ACCESS DENIED: CREDENTIALS NOT FOUND."); }
+        } else { alert("ACCESS DENIED."); }
     }
 
     function updateAdminPassword() {
