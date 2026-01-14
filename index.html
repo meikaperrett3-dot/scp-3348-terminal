@@ -62,6 +62,7 @@
 </div>
 
 <script>
+    // These keys were copied directly from your Firebase screenshot image_1604a5.png
     const firebaseConfig = {
       apiKey: "AIzaSyD5faeFWtB_Ik0WUaf9umdWs6zTFb_VGQI",
       authDomain: "scp-terminal-dcb35.firebaseapp.com",
@@ -161,7 +162,7 @@
         const word = document.getElementById('searchBox').value.toLowerCase().trim();
         db.ref('archive/' + word).once('value', snap => {
             if (snap.exists()) {
-                alert(`KAEJ: ${snap.val().kaej}\n\nDATA: ${snap.val().res}`);
+                alert(`SUCCESS:\nKAEJ: ${snap.val().kaej}\n\nDATA: ${snap.val().res}`);
             } else { alert("LOG NOT FOUND."); }
         });
     }
