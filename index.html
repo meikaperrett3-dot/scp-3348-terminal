@@ -2,239 +2,171 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Foundation Terminal // SCP-3348</title>
+    <title>Foundation Global Terminal // SCP-3348</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
-        body { background-color: #050505; color: #33ff33; font-family: 'Consolas', monospace; padding: 20px; overflow-x: hidden; }
-        .terminal { max-width: 950px; margin: 0 auto; border: 1px solid #333; background: #000; padding: 20px; position: relative; }
-        
-        #bootScreen { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#0f0; }
-        
-        @keyframes glitch {
-            0% { transform: translate(0); }
-            20% { transform: translate(-2px, 2px); }
-            40% { transform: translate(-2px, -2px); text-shadow: 2px 0 red; }
-            60% { transform: translate(2px, 2px); text-shadow: -2px 0 blue; }
-            80% { transform: translate(2px, -2px); }
-            100% { transform: translate(0); }
-        }
-        .glitch-active { animation: glitch 0.2s infinite; }
-
-        .header { border-bottom: 2px solid #a00; color: #f00; text-align: center; padding-bottom: 10px; margin-bottom: 20px; font-weight: bold; }
-        .hume-box { position: absolute; top: 10px; right: 20px; text-align: right; color: #444; font-size: 0.7rem; border-left: 1px solid #222; padding-left: 10px; }
-        #humeVal { color: #f00; font-weight: bold; font-size: 1.1rem; }
-        
+        body { background-color: #050505; color: #33ff33; font-family: 'Consolas', monospace; padding: 20px; }
+        .terminal { max-width: 950px; margin: 0 auto; border: 1px solid #333; background: #000; padding: 20px; border-radius: 5px; box-shadow: 0 0 20px #0a0; }
         .module { background: #111; border: 1px solid #222; padding: 15px; margin-bottom: 20px; }
         .label { color: #a00; font-weight: bold; font-size: 0.8rem; text-transform: uppercase; display: block; margin-bottom: 5px; }
-        input, textarea, select { width: 100%; background: #000; border: 1px solid #444; color: #0f0; padding: 8px; margin-bottom: 10px; font-family: inherit; box-sizing: border-box; }
-        
-        .btn-red { background: #a00; color: white; border: none; padding: 10px; cursor: pointer; font-weight: bold; width: 100%; }
-        .btn-grey { background: #333; color: white; border: none; padding: 10px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px;}
-        
-        .dossier { display: none; background: #c0c0c0; color: #000; padding: 25px; border: 1px solid #777; font-family: 'Times New Roman', serif; position: relative; margin-top: 20px; box-shadow: 5px 5px 15px black; }
-        .stamp { position: absolute; top: 10px; right: 10px; border: 3px solid #a00; color: #a00; padding: 5px; font-weight: bold; transform: rotate(15deg); text-transform: uppercase; }
-        .redacted { background: black; color: black; cursor: pointer; }
-
-        #adminPanel { display: none; margin-top: 20px; border: 1px solid #400; background: #0a0000; padding: 15px; }
-        .audit-log { height: 100px; overflow-y: auto; background: #000; border: 1px solid #333; padding: 5px; font-size: 0.7rem; color: #888; margin-bottom: 10px; }
-        .panic-btn { background: #f00; color: #fff; border: 4px outset #a00; padding: 15px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 20px; }
-        
-        .hint-text { color: #444; font-size: 0.7rem; text-decoration: underline; cursor: pointer; display: block; margin-top: 5px; }
-        .hint-text:hover { color: #666; }
+        input, textarea { width: 100%; background: #000; border: 1px solid #444; color: #0f0; padding: 8px; margin-bottom: 10px; box-sizing: border-box; font-family: inherit; }
+        .btn-red { background: #a00; color: white; border: none; padding: 10px; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase; }
+        .btn-grey { background: #333; color: white; border: none; padding: 10px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px; }
+        .hidden { display: none; }
+        .rank-tag { padding: 2px 8px; border-radius: 3px; font-size: 0.7rem; font-weight: bold; margin-left: 10px; }
+        .owner { background: gold; color: black; }
     </style>
 </head>
-<body onload="runBoot()">
+<body onload="init()">
 
-<div id="bootScreen"><div id="bootText"></div></div>
-
-<div class="terminal" id="mainTerminal">
-    <div class="hume-box">KANT COUNTER<br>Hm: <span id="humeVal">1.00</span></div>
-    <div class="header">SITE-██ INTERNAL TERMINAL // LINGUISTIC ANALYSIS</div>
-
-    <div class="module">
-        <span class="label">Research Archive Retrieval</span>
-        <input type="text" id="searchBox" placeholder="Input concept..." onkeypress="if(event.key==='Enter') retrieveEntry()">
-        <button class="btn-red" onclick="retrieveEntry()">RETRIEVE LOGS</button>
+<div class="terminal">
+    <div id="authPanel" class="module">
+        <span class="label">SCiPNET GLOBAL LOGIN</span>
+        <input type="email" id="emailInput" placeholder="Email...">
+        <input type="text" id="userInput" placeholder="Username (New Accounts)...">
+        <input type="password" id="passInput" placeholder="Access Code...">
+        <div style="display:flex; gap:10px;">
+            <button class="btn-grey" onclick="login()">LOGIN</button>
+            <button class="btn-grey" onclick="register()">REQUEST ACCESS</button>
+        </div>
     </div>
 
-    <div id="dossier" class="dossier">
-        <div id="outClearance" class="stamp">LEVEL 3 RESTRICTED</div>
-        <div id="contentArea">
-            <div><span style="font-weight:bold; text-decoration:underline;">Entry Tested:</span> <span id="outKaej" style="font-family: monospace;"></span></div>
-            <div><span style="font-weight:bold; text-decoration:underline;">Translation:</span> "<span id="outTrans"></span>"</div>
-            <hr style="border-top:1px solid #777">
-            <div><span style="font-weight:bold; text-decoration:underline;">Procedure:</span> <br><span id="outProc"></span></div>
-            <div style="margin-top:10px;"><span style="font-weight:bold; text-decoration:underline;">Results:</span> <br><span id="outRes"></span></div>
-        </div>
-        <button class="btn-grey" onclick="closeDossier()">[ CLOSE FILE ]</button>
-    </div>
-
-    <div class="password-lock" id="lockScreen" style="text-align:center; padding:10px;">
-        <span class="label" style="color:#444">ADMIN OVERRIDE REQUIRED</span>
-        <input type="text" id="adminUser" placeholder="Username...">
-        <span class="hint-text" onclick="alert('HINT: It is a single word starting with \'i\'... the quality of being essential or urgent.')">Forgot Username?</span>
-        <input type="password" id="adminPass" placeholder="Access Code...">
-        <button class="btn-grey" onclick="checkLogin()" style="width:100px; margin-top: 10px;">LOGIN</button>
-    </div>
-
-    <div id="adminPanel">
-        <button class="panic-btn" onclick="activateSRA()">ACTIVATE SCRANTON REALITY ANCHOR (SRA)</button>
-        <div class="admin-header" style="color:red; font-weight:bold; margin-bottom:10px; border-bottom: 1px solid #400; padding-bottom: 5px;">
-            O5 COMMAND INTERFACE <button onclick="logout()" style="float:right; background:transparent; border:1px solid red; color:red; cursor:pointer;">LOGOUT</button>
-        </div>
-        
-        <span class="label">Search Audit Trail</span>
-        <div id="auditLog" class="audit-log"></div>
-
-        <div class="module" style="background:transparent; border:none; padding:0;">
-            <span class="label">Create Discovery Log</span>
-            <div style="display:grid; grid-template-columns: 2fr 1fr; gap:10px;">
-                <input type="text" id="customWord" placeholder="English Word">
-                <input type="number" id="customHume" placeholder="Hm (0-100)" step="0.1" value="1.0">
-            </div>
-            <span class="label" style="font-size:0.6rem;">Kaej String (Use * to redact)</span>
-            <input type="text" id="customKaej" placeholder="Kaejnithionian String...">
-            <textarea id="customProc" placeholder="Procedure..."></textarea>
-            <textarea id="customRes" placeholder="Results..."></textarea>
-            <button class="btn-red" onclick="addCustomEntry()">SAVE TO SECURE ARCHIVE</button>
+    <div id="mainInterface" class="hidden">
+        <div style="border-bottom: 2px solid #a00; margin-bottom: 15px; padding-bottom: 10px;">
+            <span style="font-weight:bold;">OPERATOR:</span> <span id="displayUser"></span>
+            <span id="displayRank" class="rank-tag"></span>
+            <button onclick="logout()" style="float:right;">DISCONNECT</button>
         </div>
 
-        <div class="module" style="background:#050000; border-color:#500;">
-            <span class="label" style="color:#f00;">System Config</span>
-            <input type="password" id="newPassInput" placeholder="New Admin Access Code...">
-            <button class="btn-grey" onclick="updateAdminPassword()">UPDATE ACCESS CODE</button>
-            <hr style="border-color:#300; margin:15px 0;">
-            <input type="text" id="clearanceInput" placeholder="New Clearance Label (e.g. LEVEL 5)...">
-            <button class="btn-grey" onclick="updateClearanceLabel()">UPDATE CLEARANCE STAMP</button>
-            <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
-                <button class="btn-grey" onclick="exportDB()">EXPORT DATA</button>
-                <button class="btn-grey" onclick="importDB()">IMPORT DATA</button>
-            </div>
-            <button class="btn-grey" onclick="secureWipe()" style="color:red; margin-top:15px;">PURGE ALL DATA</button>
+        <div class="module">
+            <span class="label">Global Database Search</span>
+            <input type="text" id="searchBox" placeholder="Input concept..." onkeypress="if(event.key==='Enter') searchGlobal()">
+            <button class="btn-red" onclick="searchGlobal()">SEARCH SITE ARCHIVE</button>
+        </div>
+
+        <div id="ownerPanel" class="module hidden" style="border: 1px solid gold;">
+            <span class="label" style="color:gold;">O5 COMMAND: PENDING REQUESTS</span>
+            <div id="pendingList" style="font-size:0.8rem;">Scanning for new personnel...</div>
+        </div>
+
+        <div id="creatorPanel" class="module hidden">
+            <span class="label">Add Secure Discovery Log</span>
+            <input type="text" id="newWord" placeholder="Subject">
+            <input type="text" id="newKaej" placeholder="Kaej String">
+            <textarea id="newRes" placeholder="Full Log Data..."></textarea>
+            <button class="btn-red" onclick="saveToGlobal()">UPLOAD TO SITE ARCHIVE</button>
         </div>
     </div>
 </div>
 
 <script>
-    let database = {};
-    let currentAdminUser = "imperative";
-    let currentAdminPass = "Toxic the fixy foxy";
-    let activeHume = 1.00;
-    let currentClearance = "LEVEL 3 RESTRICTED";
+    const firebaseConfig = {
+      apiKey: "AIzaSyD5faeFWtB_Ik0WUaf9umdWs6zTFb_VGQI",
+      authDomain: "scp-terminal-dcb35.firebaseapp.com",
+      databaseURL: "https://scp-terminal-dcb35-default-rtdb.firebaseio.com",
+      projectId: "scp-terminal-dcb35",
+      storageBucket: "scp-terminal-dcb35.firebasestorage.app",
+      messagingSenderId: "610931653710",
+      appId: "1:610931653710:web:a9776d0d1d40de49d7971f",
+      measurementId: "G-ZJGVXVYD8"
+    };
 
-    function runBoot() {
-        const lines = ["> INITIALIZING...", "> CHECKING ENCRYPTION...", "> SITE-██ LINK ACTIVE.", "> ACCESS GRANTED."];
-        let i = 0;
-        const interval = setInterval(() => {
-            document.getElementById('bootText').innerText += lines[i] + "\n";
-            i++;
-            if(i >= lines.length) { clearInterval(interval); setTimeout(() => { document.getElementById('bootScreen').style.display = 'none'; init(); }, 1000); }
-        }, 500);
-    }
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    const OWNER_EMAIL = "meikaperrett3@gmail.com"; 
 
     function init() {
-        const savedDB = localStorage.getItem('scp3348_db');
-        const savedPass = localStorage.getItem('scp3348_pass');
-        const savedClearance = localStorage.getItem('scp3348_clearance');
+        auth.onAuthStateChanged(user => { if(user) checkAccess(user); });
+    }
+
+    function register() {
+        const email = document.getElementById('emailInput').value;
+        const pass = document.getElementById('passInput').value;
+        const name = document.getElementById('userInput').value;
+        if(!name) return alert("Username required.");
+
+        auth.createUserWithEmailAndPassword(email, pass).then((res) => {
+            db.ref('users/' + res.user.uid).set({
+                username: name,
+                rank: "Researcher",
+                approved: false
+            });
+            alert("REQUEST SUBMITTED. Awaiting Meika's approval.");
+            auth.signOut();
+        }).catch(err => alert(err.message));
+    }
+
+    function login() {
+        const email = document.getElementById('emailInput').value;
+        const pass = document.getElementById('passInput').value;
+        auth.signInWithEmailAndPassword(email, pass).catch(err => alert(err.message));
+    }
+
+    function checkAccess(user) {
+        db.ref('users/' + user.uid).once('value', (snap) => {
+            const data = snap.val();
+            if (user.email === OWNER_EMAIL || (data && data.approved)) {
+                showInterface(data || {username: "Meika", rank: "Owner"}, user.email);
+            } else {
+                alert("ACCESS PENDING: Contact Owner for approval.");
+                auth.signOut();
+            }
+        });
+    }
+
+    function showInterface(userData, email) {
+        document.getElementById('authPanel').classList.add('hidden');
+        document.getElementById('mainInterface').classList.remove('hidden');
+        document.getElementById('displayUser').innerText = userData.username;
         
-        if (savedDB) database = JSON.parse(savedDB);
-        if (savedPass) currentAdminPass = savedPass;
-        if (savedClearance) currentClearance = savedClearance;
-        
-        setInterval(() => {
-            const h = (parseFloat(activeHume) + (Math.random() * 0.02 - 0.01)).toFixed(2);
-            document.getElementById('humeVal').innerText = h;
-            if (h < 0.40) document.getElementById('mainTerminal').classList.add('glitch-active');
-            else document.getElementById('mainTerminal').classList.remove('glitch-active');
-        }, 2000);
-    }
-
-    function checkLogin() {
-        const user = document.getElementById('adminUser').value;
-        const pass = document.getElementById('adminPass').value;
-
-        // EMERGENCY RECOVERY PROTOCOL
-        if (user === "RECOVERY-3348") {
-            currentAdminPass = "O5-1";
-            localStorage.setItem('scp3348_pass', "O5-1");
-            alert("EMERGENCY RECOVERY: Password has been reset to O5-1. Log in with 'imperative' and 'O5-1'.");
-            return;
-        }
-
-        if (user === currentAdminUser && pass === currentAdminPass) {
-            document.getElementById('adminPanel').style.display = 'block';
-            document.getElementById('lockScreen').style.display = 'none';
-        } else { alert("ACCESS DENIED."); }
-    }
-
-    function updateAdminPassword() {
-        const newPass = document.getElementById('newPassInput').value.trim();
-        if (newPass) {
-            currentAdminPass = newPass;
-            localStorage.setItem('scp3348_pass', newPass);
-            alert("ACCESS CODE UPDATED.");
-            document.getElementById('newPassInput').value = "";
+        if (email === OWNER_EMAIL) {
+            document.getElementById('displayRank').innerText = "OWNER";
+            document.getElementById('displayRank').className = "rank-tag owner";
+            document.getElementById('ownerPanel').classList.remove('hidden');
+            document.getElementById('creatorPanel').classList.remove('hidden');
+            loadPending();
+        } else {
+            document.getElementById('displayRank').innerText = "RESEARCHER";
+            document.getElementById('displayRank').className = "rank-tag";
         }
     }
 
-    function updateClearanceLabel() {
-        const val = document.getElementById('clearanceInput').value.trim();
-        if (val) {
-            currentClearance = val;
-            localStorage.setItem('scp3348_clearance', val);
-            alert("STAMP UPDATED.");
-        }
+    function loadPending() {
+        db.ref('users').on('value', snap => {
+            let html = "";
+            snap.forEach(child => {
+                if (!child.val().approved) {
+                    html += `<div>${child.val().username} <button onclick="approveUser('${child.key}')">[APPROVE]</button></div>`;
+                }
+            });
+            document.getElementById('pendingList').innerHTML = html || "No pending requests.";
+        });
     }
 
-    function activateSRA() {
-        alert("SRA ENGAGED: REALITY ANCHORED AT 1.00 HM");
-        activeHume = 1.00;
-        closeDossier();
+    function approveUser(uid) { db.ref('users/' + uid).update({ approved: true }); }
+
+    function saveToGlobal() {
+        const word = document.getElementById('newWord').value.toLowerCase().trim();
+        db.ref('archive/' + word).set({
+            kaej: document.getElementById('newKaej').value,
+            res: document.getElementById('newRes').value
+        }).then(() => alert("SITE ARCHIVE UPDATED."));
     }
 
-    function retrieveEntry() {
-        let key = document.getElementById('searchBox').value.toLowerCase().trim();
-        let entry = database[key];
-        const log = document.getElementById('auditLog');
-        log.innerHTML = `[${new Date().toLocaleTimeString()}] SEARCH: ${key}<br>` + log.innerHTML;
-        if (entry) {
-            document.getElementById('outClearance').innerText = currentClearance;
-            document.getElementById('outKaej').innerHTML = entry.kaej.replace(/\*/g, '<span class="redacted">███</span>');
-            document.getElementById('outTrans').innerText = key;
-            document.getElementById('outProc').innerText = entry.proc;
-            document.getElementById('outRes').innerText = entry.res;
-            document.getElementById('dossier').style.display = 'block';
-            activeHume = entry.hume || 1.00;
-        } else { alert("LOG NOT FOUND."); }
+    function searchGlobal() {
+        const word = document.getElementById('searchBox').value.toLowerCase().trim();
+        db.ref('archive/' + word).once('value', snap => {
+            if (snap.exists()) {
+                alert(`KAEJ: ${snap.val().kaej}\n\nDATA: ${snap.val().res}`);
+            } else { alert("LOG NOT FOUND."); }
+        });
     }
 
-    function addCustomEntry() {
-        let word = document.getElementById('customWord').value.toLowerCase().trim();
-        if (!word) return;
-        database[word] = {
-            kaej: document.getElementById('customKaej').value,
-            hume: document.getElementById('customHume').value,
-            proc: document.getElementById('customProc').value,
-            res: document.getElementById('customRes').value
-        };
-        localStorage.setItem('scp3348_db', JSON.stringify(database));
-        alert("LOG COMMITTED.");
-    }
-
-    function logout() { location.reload(); }
-    function closeDossier() { document.getElementById('dossier').style.display = 'none'; activeHume = 1.00; }
-    function exportDB() { 
-        const blob = new Blob([JSON.stringify(database)], {type: 'text/plain'});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-        a.download = 'Archive.txt'; a.click();
-    }
-    function importDB() {
-        const input = document.createElement('input'); input.type = 'file';
-        input.onchange = e => {
-            const reader = new FileReader(); reader.readAsText(e.target.files[0]);
-            reader.onload = ev => { database = JSON.parse(ev.target.result); localStorage.setItem('scp3348_db', JSON.stringify(database)); alert("IMPORTED."); }
-        }; input.click();
-    }
-    function secureWipe() { if(confirm("PURGE ALL?")) { localStorage.removeItem('scp3348_db'); location.reload(); } }
+    function logout() { auth.signOut(); location.reload(); }
 </script>
 </body>
 </html>
